@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Local Shop</title>
+
+<!-- EmailJS -->
+<script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+
+<style>
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #fff8f0;
+}
+
+/* Header */
+header {
+  background: #ff5722;
+  color: white;
+  padding: 15px;
+  text-align: center;
+}
+
+h1 { margin: 0; }
+
+/* Product Section */
+.container {
+  padding: 15px;
+}
+
+.product {
+  background: white;
+  padding: 15px;
+  margin-bottom: 15px;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.product img {
+  width: 100%;
+  border-radius: 10px;
+}
+
+button {
+  background: #ff5722;
+  color: white;
+  border: none;
+  padding: 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #e64a19;
+}
+
+/* Cart */
+.cart {
+  background: white;
+  padding: 15px;
+  border-radius: 12px;
+  margin-top: 20px;
+}
+
+/* Form */
+input, textarea {
+  width: 100%;
+  padding: 10px;
+  margin: 8px 0;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+/* WhatsApp Button */
+.whatsapp {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: green;
+  color: white;
+  padding: 15px;
+  border-radius: 50%;
+  text-decoration: none;
+  font-size: 20px;
+}
+
+/* Loader */
+.loader {
+  display: none;
+  text-align: center;
+  margin-top: 10px;
+}
+
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>The Local Shop</h1>
+  <p>Fresh & Hot Samosa and Egg Rolls Delivered Fast</p>
+</header>
+
+<div class="container">
+
+  <!-- Products -->
+  <div class="product">
+    <img src="https://i.imgur.com/9XnK9mK.jpg">
+    <h3>Samosa - ₹15</h3>
+    <input type="number" id="samosaQty" value="0" min="0">
+    <button onclick="addToCart('Samosa',15,'samosaQty')">Add to Cart</button>
+  </div>
+
+  <div class="product">
+    <img src="https://i.imgur.com/eTmWoAN.jpg">
+    <h3>Egg Roll - ₹40</h3>
+    <input type="number" id="eggQty" value="0" min="0">
+    <button onclick="addToCart('Egg Roll',40,'eggQty')">Add to Cart</button>
+  </div>
+
+  <!-- Cart -->
+  <div class="cart">
+    <h3>Your Cart</h3>
+    <div id="cartItems"></div>
+    <h4>Total: ₹<span id="total">0</span></h4>
+  </div>
+
+  <!-- Customer Form -->
+  <h3>Customer Details</h3>
+  <input type="text" id="name" placeholder="Name" required>
+  <input type="text" id="phone" placeholder="Phone Number" required>
+  <textarea id="address" placeholder="Delivery Address"></textarea>
+  <input type="text" id="pincode" placeholder="Pincode">
+
+  <textarea id="note" placeholder="Optional Note"></textarea>
+
+  <p><b>Note:</b> We only deliver within 2 km</p>
+
+  <button onclick="placeOrder()">Place Order</button>
+
+  <div class="loader" id="loader">⏳ Sending Order...</div>
+  <p id="message"></p>
+
+</div>
+
+<!-- WhatsApp -->
+<a class="whatsapp" href="https://wa.me/91XXXXXXXXXX?text=I want to order food" target="_blank">💬</a>
+
+<script>
+emailjs.init("YOUR_PUBLIC_KEY"); // Replace
+
+let cart = [];
+
+function addToCart(name, price, qtyId) {
+  let qty = document.getElementById(qtyId).value;
+
+  if (qty > 0) {
+    let existing = cart.find(item => item.name === name);
+
+    if (existing) {
+      existing.qty = parseInt(existing.qty) + parseInt(qty);
+    } else {
+      cart.push({name, price, qty});
+    }
+
+    updateCart();
+  }
+}
+
+function updateCart() {
+  let cartDiv = document.getElementById("cartItems");
+  cartDiv.innerHTML = "";
+  let total = 0;
+
+  cart.forEach((item, index) => {
+    total += item.price * item.qty;
+
+    cartDiv.innerHTML += `
+      <p>
+        ${item.name} x ${item.qty} = ₹${item.price * item.qty}
+        <button onclick="removeItem(${index})">❌</button>
+      </p>
+    `;
+  });
+
+  document.getElementById("total").innerText = total;
+}
+
+function removeItem(index) {
+  cart.splice(index, 1);
+  updateCart();
+}
+
+function placeOrder() {
+  let name = document.getElementById("name").value;
+  let phone = document.getElementById("phone").value;
+  let address = document.getElementById("address").value;
+  let pincode = document.getElementById("pincode").value;
+  let note = document.getElementById("note").value;
+  let total = document.getElementById("total").innerText;
+
+  if (!name || !phone || !address) {
+    alert("Please fill all required fields");
+    return;
+  }
+
+  // Simple delivery validation (example: only allow pincode 123456)
+  if (pincode !== "123456") {
+    alert("We only deliver within 2 km area");
+    return;
+  }
+
+  let orderDetails = cart.map(item =>
+    `${item.name} x ${item.qty}`
+  ).join(", ");
+
+  document.getElementById("loader").style.display = "block";
+
+  emailjs.send("YOUR_SERVICE_ID", "YOUR_TEMPLATE_ID", {
+    name: name,
+    phone: phone,
+    address: address,
+    order: orderDetails,
+    total: total,
+    note: note
+  })
+  .then(() => {
+    document.getElementById("loader").style.display = "none";
+    document.getElementById("message").innerText = "✅ Order placed successfully!";
+    cart = [];
+    updateCart();
+  })
+  .catch(() => {
+    document.getElementById("loader").style.display = "none";
+    document.getElementById("message").innerText = "❌ Failed to send order";
+  });
+}
+</script>
+
+</body>
+</html>
